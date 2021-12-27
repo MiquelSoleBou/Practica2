@@ -1,11 +1,19 @@
 
 
 setwd("C:\\Users/mique/Downloads")
+#setwd("C:\\Users/tuneu/Downloads")
 
 library(dplyr)
 library(data.table)
 library(lubridate)
+library(Hmisc)
+library(HH)
+library(corrplot)
+library(ResourceSelection)
+library(pROC)
+library(DT)
 require(glue)
+
 
 #--------------------- Read inputs -----------------------------------------
 WineQuality <- read.csv("winequality-red.csv", header = TRUE, blank.lines.skip = TRUE) 
@@ -101,21 +109,116 @@ PercentatgeOutliers
 
 
 
+# ========================================================
+# COMPROVACIÓ DE NORMALITAT
+# ========================================================
+
+WineQuality$quality <- as.numeric(WineQuality$quality)
+
+hist.data.frame(WineQuality)
+
+qqnorm(WineQuality$density)
+qqline(WineQuality$density)
+
+qqnorm(WineQuality$pH)
+qqline(WineQuality$pH)
+
+lshap <- lapply(WineQuality, shapiro.test)
+
+for(l in lshap){
+  print(l)
+}
+
+shapiro.test(WineQuality$density)
 
 
 
+# ========================================================
+# HOMOGENEÏTAT DE LA VARIÀNCIA
+# ========================================================
+
+lhov <- c()
 
 
+hov(WineQuality$quality ~ WineQuality$alcohol)
+hov(WineQuality$quality ~ WineQuality$volatile.acidity)
+hov(WineQuality$quality ~ WineQuality$sulphates)
+hov(WineQuality$quality ~ WineQuality$citric.acid)
+
+# ========================================================
+# CORRELACIÓ ENTRE VARIABLES
+# ========================================================
+
+correlation <- cor(WineQuality)
+corrplot(correlation, type="upper", order = "hclust", tl.col="black", tl.srt=45)
+
+#Veiem en la matriu de correlació que les variables que semblen afectar més la qualitat del vi són alcohol i volatile.acidity.
+#Seguides de sulphates i citric.acid.
 
 
+# ========================================================
+# REGRESSIÓ LINEAL
+# ========================================================
+
+#Comencem fent regressió lineal amb la variable alcohol.
+
+alcoholModel <- lm(quality ~ alcohol, WineQuality)
+summary(alcoholModel)
+
+#Els resultats ens mostren un coeficient de determinació de 0.2267, afegim la variable volatile.acidity al model i comprovem si ha millroat.
+
+alcVolatileModel <- lm(quality ~ alcohol+volatile.acidity, WineQuality)
+summary(alcVolatileModel)
+
+#Amb aquesta modificació el coeficient de determinació millora 
+
+alcVolSulphatesModel <- lm(quality ~ alcohol+volatile.acidity+sulphates, WineQuality)
+summary(alcVolSulphatesModel)
+
+alcVolSulCitricModel <- lm(quality ~ alcohol+volatile.acidity+sulphates+citric.acid, WineQuality)
+summary(alcVolSulCitricModel)
+
+tab <- matrix( c(summary(alcoholModel)$r.squared,summary(alcVolatileModel)$r.squared,summary(alcVolSulphatesModel)$r.squared,summary(alcVolSulCitricModel)$r.squared), ncol=1, byrow=TRUE  )
+colnames(tab) <- c('Coeficient de determinació')
+rownames(tab) <- c('Alcohol', 'Alcohol + Volatile','Alc + Vol + Sulphates','Alc + Vol + Sul + Citric')
 
 
+datatable(tab)
 
+plot(alcVolSulCitricModel, which=c(1,2))
 
+# ========================================================
+# REGRESSIÓ LOGÍSTICA
+# ========================================================
 
+#Es preté fer una classificació dels vins entre "bons" i "dolents", considerant com a bons tots aquells que superin
+#la puntuació de 5 i de "dolents" tots aquells que tinguin una puntuació diferent a 5. Per dur a terme aquest anàlisi
+#generarem diferents models de regressió logística.
 
+WineQuality$quality_cat <- cut(WineQuality$quality, breaks=c(0,5,10), labels=c("dolent", "bo"))
 
+regressionAlcModel <- glm(quality_cat ~ alcohol , data = WineQuality, family=binomial)
+summary(regressionAlcModel)
 
+exp(coefficients(regressionAlcModel))
 
+hoslem.test(WineQuality$quality_cat, fitted(regressionAlcModel))
+
+prob = predict(regressionAlcModel, WineQuality, type="response")
+r=roc(WineQuality$quality_cat, prob, data=WineQuality)
+plot(r)
+auc(r)
+
+regressionAlcVolModel <- glm(quality_cat ~ alcohol+ volatile.acidity , data = WineQuality, family=binomial)
+summary(regressionAlcVolModel)
+
+exp(coefficients(regressionAlcVolModel))
+
+hoslem.test(WineQuality$quality_cat, fitted(regressionAlcVolModel))
+
+prob = predict(regressionAlcVolModel, WineQuality, type="response")
+r=roc(WineQuality$quality_cat, prob, data=WineQuality)
+plot(r)
+auc(r)
 
 
