@@ -1,5 +1,6 @@
-
-
+# ==============================================
+# DEFINIM RUTA I IMPORTEM LLIBRERIES
+# ==============================================
 #setwd("C:\\Users/mique/Downloads")
 setwd("C:\\Users/tuneu/Downloads")
 
@@ -15,7 +16,9 @@ library(DT)
 require(glue)
 
 
-#--------------------- Read inputs -----------------------------------------
+# ==============================================
+# LLEGIM LES DADES
+# ==============================================
 WineQuality <- read.csv("winequality-red.csv", header = TRUE, blank.lines.skip = TRUE) 
 
 print(head(WineQuality))
@@ -26,7 +29,7 @@ summary(WineQuality)
 WineQuality2 <- apply(WineQuality, 2, function(x) any(is.na(x)))
 WineQuality2
 
-# Hem vist que no. En el 
+# Hem vist que no en contenen.
 
 # Comprovem si contenen 0s:
 WineQuality3 <- apply(WineQuality, 2, function(x) any(x==0))
@@ -38,7 +41,7 @@ maximAcidNitric<-max(WineQuality$citric.acid)
 # DETECCIÓ I SUBSTITUCIÓ D'OUTLIERS
 # ==============================================
 
-# Establim un criteri per determinar outliers de +/- 2 desviacions mitjanes
+# Establim un criteri per determinar outliers de +/- 3 desviacions mitjanes
 
 # Inicialitzem la llista de noms de columnes
 nomsColumnes <- NULL
@@ -58,7 +61,7 @@ for (col in 1:ncol(WineQuality)){
   # Emmagatzemem els noms de les columnes en una llista
   nomsColumnes <- append(nomsColumnes, outlierColumnName)
   
-  # Apliquem un TRUE/FALSE a la nova columna creada, en funció de si sobrepassa les tres SD
+  # Apliquem un TRUE/FALSE a la nova columna creada, en funció de si sobrepassa les 3 SD
   WineQuality[,outlierColumnName] <- ifelse( abs(scale(WineQuality[,nomCol])) > 3, 1, 0)
   
   # Calculem la mitjana excloent els Outliers
