@@ -242,4 +242,4 @@ auc(r)
 # GUARDEM EL DATAFRAME EN CSV
 # ========================================================
 
-write.csv(WineQuality, "WineQuality-clean.csv")
+write.csv(WineQuality, "WineQuality-clean.csv", row.names=FALSE)
