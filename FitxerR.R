@@ -1,7 +1,7 @@
 
 
-setwd("C:\\Users/mique/Downloads")
-#setwd("C:\\Users/tuneu/Downloads")
+#setwd("C:\\Users/mique/Downloads")
+setwd("C:\\Users/tuneu/Downloads")
 
 library(dplyr)
 library(data.table)
@@ -42,6 +42,8 @@ maximAcidNitric<-max(WineQuality$citric.acid)
 
 # Inicialitzem la llista de noms de columnes
 nomsColumnes <- NULL
+
+WineQualityColNames <- colnames(WineQuality)
 
 for (col in 1:ncol(WineQuality)){
   
@@ -107,7 +109,7 @@ PercentatgeOutliers
 # Ens apareix un 12% de registres que contenen algún Outlier, segons el tall de 3 desviacions mitjanes.
 # Substituim cada valor extrem per la mitjana d'aquell atribut.
 
-
+WineQuality <- subset(WineQuality, select = WineQualityColNames)
 
 # ========================================================
 # COMPROVACIÓ DE NORMALITAT
@@ -130,6 +132,7 @@ for(l in lshap){
 }
 
 shapiro.test(WineQuality$density)
+shapiro.test(WineQuality$pH)
 
 
 
@@ -150,6 +153,7 @@ hov(WineQuality$quality ~ WineQuality$citric.acid)
 # ========================================================
 
 correlation <- cor(WineQuality)
+round(correlation, 2)
 corrplot(correlation, type="upper", order = "hclust", tl.col="black", tl.srt=45)
 
 #Veiem en la matriu de correlació que les variables que semblen afectar més la qualitat del vi són alcohol i volatile.acidity.
@@ -165,7 +169,7 @@ corrplot(correlation, type="upper", order = "hclust", tl.col="black", tl.srt=45)
 alcoholModel <- lm(quality ~ alcohol, WineQuality)
 summary(alcoholModel)
 
-#Els resultats ens mostren un coeficient de determinació de 0.2267, afegim la variable volatile.acidity al model i comprovem si ha millroat.
+#Els resultats ens mostren un coeficient de determinació de 0.2309, afegim la variable volatile.acidity al model i comprovem si ha millroat.
 
 alcVolatileModel <- lm(quality ~ alcohol+volatile.acidity, WineQuality)
 summary(alcVolatileModel)
@@ -185,7 +189,7 @@ rownames(tab) <- c('Alcohol', 'Alcohol + Volatile','Alc + Vol + Sulphates','Alc 
 
 datatable(tab)
 
-plot(alcVolSulCitricModel, which=c(1,2))
+plot(alcVolSulphatesModel, which=c(1,2))
 
 # ========================================================
 # REGRESSIÓ LOGÍSTICA
@@ -222,3 +226,20 @@ plot(r)
 auc(r)
 
 
+regressionAlcVolSulModel <- glm(quality_cat ~ alcohol+ volatile.acidity+sulphates, data = WineQuality, family=binomial)
+summary(regressionAlcVolSulModel)
+
+exp(coefficients(regressionAlcVolSulModel))
+
+hoslem.test(WineQuality$quality_cat, fitted(regressionAlcVolSulModel))
+
+prob = predict(regressionAlcVolSulModel, WineQuality, type="response")
+r=roc(WineQuality$quality_cat, prob, data=WineQuality)
+plot(r)
+auc(r)
+
+# ========================================================
+# GUARDEM EL DATAFRAME EN CSV
+# ========================================================
+
+write.csv(WineQuality, "WineQuality-clean.csv")
